@@ -1,43 +1,43 @@
 # AutoTrade Multimodal
 
-Ce projet contient l'interface utilisateur (frontend Next.js) et l'agent de trading (backend FastAPI) pour le système de trading autonome.
+This project contains the user interface (Next.js frontend) and the trading agent (FastAPI backend) for the autonomous trading system.
 
-## 🚀 Comment lancer le programme
+## 🚀 How to launch the program
 
-Pour que l'application fonctionne correctement, vous devez lancer **à la fois** le backend et le frontend dans deux terminaux séparés.
+For the application to work correctly, you must launch **both** the backend and the frontend in two separate terminals.
 
-### 1. Lancer le Backend (Python / FastAPI)
+### 1. Launch the Backend (Python / FastAPI)
 
-Ouvrez un terminal et placez-vous dans le dossier `backend` :
+Open a terminal and navigate to the `backend` folder:
 
 ```bash
 cd backend
 
-# Optionnel mais recommandé : Créer et activer un environnement virtuel
+# Optional but recommended: Create and activate a virtual environment
 python -m venv venv
 source venv/bin/activate  # macOS / Linux
-# sur Windows : venv\Scripts\activate
+# on Windows: venv\Scripts\activate
 
-# Installer les dépendances
+# Install dependencies
 pip install -r requirements.txt
 
-# Lancer le serveur backend
+# Launch the backend server
 uvicorn main:app --reload
 ```
-Le backend sera alors actif sur http://localhost:8000.
+The backend will then be active on http://localhost:8000.
 
-### 2. Lancer le Frontend (Next.js)
+### 2. Launch the Frontend (Next.js)
 
-Ouvrez un **nouveau** terminal et placez-vous dans le dossier `frontend` :
+Open a **new** terminal and navigate to the `frontend` folder:
 
 ```bash
 cd frontend
 
-# Installer les dépendances (nécessaire à la première utilisation)
+# Install dependencies (necessary for the first use)
 npm install
 
-# Lancer le serveur de développement
+# Launch the development server
 npm run dev
 ```
 
-Une fois lancé, ouvrez votre navigateur et accédez à l'adresse **[http://localhost:3000](http://localhost:3000)** pour voir le tableau de bord.
+Once launched, open your browser and access **[http://localhost:3000](http://localhost:3000)** to see the dashboard.

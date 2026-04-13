@@ -15,7 +15,7 @@ hf_logging.set_verbosity_error()
 
 load_dotenv()
 
-# --- Logging structuré ---
+# --- Structured Logging ---
 logger = logging.getLogger("news_agent")
 logger.setLevel(logging.INFO)
 logging.getLogger("ddgs").setLevel(logging.ERROR)
@@ -28,15 +28,15 @@ if not logger.handlers:
     ch.setLevel(logging.INFO)
     logger.addHandler(ch)
 
-# Cache global pour le frontend (remplace celui d'agent.py)
+# Global cache for the frontend (replaces the one in agent.py)
 LATEST_FINBERT_NEWS = []
 MAX_NEWS_CACHE = 20
 
-logger.info("Chargement du modèle FinBERT pour l'analyse de sentiment (News)...")
+logger.info("Loading FinBERT model for sentiment analysis (News)...")
 try:
     finbert_analyzer = pipeline("sentiment-analysis", model="ProsusAI/finbert", truncation=True, max_length=512)
 except Exception as e:
-    logger.error(f"Erreur chargement FinBERT: {e}")
+    logger.error(f"Error loading FinBERT: {e}")
     finbert_analyzer = None
 
 class FinancialNewsAgent:
@@ -44,7 +44,7 @@ class FinancialNewsAgent:
         self.ddg_search = DuckDuckGoSearchResults()
 
     def get_web_news(self, query: str, config_weight: float = 1.0, max_retries: int = 3) -> List[Dict]:
-        """Recherche Web et Score FinBERT avec tolérance aux pannes."""
+        """Web search and FinBERT scoring with fault tolerance."""
         news_items = []
         for attempt in range(max_retries):
             try:
@@ -69,9 +69,9 @@ class FinancialNewsAgent:
                         })
                     return news_items # Si ok, on quitte la boucle
             except Exception as e:
-                logger.warning(f"DDG: Tentative {attempt+1}/{max_retries} échouée pour '{query}': {e}")
+                logger.warning(f"DDG: Attempt {attempt+1}/{max_retries} failed for '{query}': {e}")
                 if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)  # backoff exponentiel (1s, 2s)
+                    time.sleep(2 ** attempt)  # exponential backoff (1s, 2s)
                     
         return news_items
 
@@ -84,25 +84,25 @@ class FinancialNewsAgent:
             return "neutral", 0.0
 
     async def analyze_market_sentiment_combined(self, symbol: str) -> str:
-        """Méthode unifiée. Récupère Web News, agence les données, met en cache et retourne un résumé pour l'agent."""
+        """Unified method. Fetches Web News, formats data, caches it, and returns a summary for the agent."""
         
         # We wrap in thread to play nicely with asyncio if needed by the Agent graph
         web_news = await asyncio.to_thread(self.get_web_news, f"{symbol} stock market news", config_weight=1.0)
         
         if not web_news:
-            return "Aucune actualité pertinente trouvée."
+            return "No relevant news found."
             
-        # Trié par impact (weighted_score)
+        # Sorted by impact (weighted_score)
         web_news.sort(key=lambda x: x.get('weighted_score', 0), reverse=True)
         
-        summary = f"--- INTELLIGENCE MARCHÉ EN TEMPS RÉEL (Web) pour {symbol} ---\n"
+        summary = f"--- REAL-TIME MARKET INTELLIGENCE (Web) for {symbol} ---\n"
         
         for item in web_news:
             src = item['source']
             lbl = item['label'].upper()
             w_score = item['weighted_score']
             
-            summary += f"• [{src} | {lbl}] Titre: \"{item['text']}\" (Impact: {w_score:.2f})\n"
+            summary += f"• [{src} | {lbl}] Title: \"{item['text']}\" (Impact: {w_score:.2f})\n"
                 
             # Add to global frontend cache
             news_obj = {

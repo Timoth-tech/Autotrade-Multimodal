@@ -1,44 +1,44 @@
 #!/bin/bash
 
-# Script d'installation automatisé pour Trading Multimodal
+# Automated installation script for Multimodal Trading
 
-echo "🚀 Démarrage de l'installation de Trading Multimodal..."
+echo "🚀 Starting Multimodal Trading installation..."
 
-# 1. Vérification du Backend
-echo "📦 Configuration du Backend..."
+# 1. Backend Verification
+echo "📦 Configuring Backend..."
 cd backend
 if [ ! -d "venv" ]; then
     python3 -m venv venv
-    echo "✅ Environnement virtuel créé."
+    echo "✅ Virtual environment created."
 fi
 
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-echo "✅ Dépendances Python installées."
+echo "✅ Python dependencies installed."
 
 if [ ! -f ".env" ]; then
     cp .env.example .env
-    echo "⚠️  Fichier .env créé à partir de l'exemple. N'oubliez pas d'ajouter vos clés API !"
+    echo "⚠️  .env file created from example. Don't forget to add your API keys!"
 fi
 
 cd ..
 
-# 2. Vérification du Frontend
-echo "💻 Configuration du Frontend..."
+# 2. Frontend Verification
+echo "💻 Configuring Frontend..."
 if [ -d "frontend" ]; then
     cd frontend
     npm install
-    echo "✅ Dépendances Node.js installées."
+    echo "✅ Node.js dependencies installed."
     cd ..
 else
-    echo "❌ Dossier frontend introuvable."
+    echo "❌ Frontend directory not found."
 fi
 
 echo "===================================================="
-echo "🎉 Installation terminée avec succès !"
+echo "🎉 Installation completed successfully!"
 echo "===================================================="
-echo "Pour lancer le système :"
-echo "1. Backend : cd backend && uvicorn main:app --reload"
-echo "2. Frontend : cd frontend && npm run dev"
+echo "To launch the system:"
+echo "1. Backend: cd backend && uvicorn main:app --reload"
+echo "2. Frontend: cd frontend && npm run dev"
 echo "===================================================="

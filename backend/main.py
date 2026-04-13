@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- Optimisation du Logging ---
+# --- Logging Optimization ---
 logger = logging.getLogger("autotrade")
 logging.getLogger("ddgs").setLevel(logging.ERROR)
 logging.getLogger("primp").setLevel(logging.ERROR)
@@ -22,8 +22,8 @@ logging.getLogger("httpx.http2").setLevel(logging.WARNING)
 def get_alpaca_client():
     api_key = os.getenv("ALPACA_API_KEY")
     secret_key = os.getenv("ALPACA_SECRET_KEY")
-    if not api_key or api_key == "votre_cle_api_alpaca":
-        raise ValueError("Les clés Alpaca ne sont pas configurées dans .env")
+    if not api_key or api_key == "your_alpaca_api_key":
+        raise ValueError("Alpaca keys are not configured in .env")
     return TradingClient(api_key, secret_key, paper=True)
 
 CYCLE_INTERVAL_MARKET_OPEN = 60  # 1 minutes quand le marché est ouvert
@@ -34,7 +34,7 @@ autopilot_enabled = True  # Panic switch
 strategy_mode = "balanced"  # "aggressive", "balanced", "conservative"
 
 async def periodic_trade_loop():
-    """Boucle autonome continue. Tourne sans arrêt et trade quand le marché est ouvert."""
+    """Continuous autonomous loop. Runs non-stop and trades when the market is open."""
     cycle = 0
     global last_auto_result
     
@@ -46,18 +46,18 @@ async def periodic_trade_loop():
             
             if clock.is_open and autopilot_enabled:
                 logger.info(f"\n{'='*60}")
-                logger.info(f"[CYCLE #{cycle}] Marché OUVERT. Lancement automatique de l'agent...")
+                logger.info(f"[CYCLE #{cycle}] Market OPEN. Automatically launching agent...")
                 logger.info(f"{'='*60}")
                 from agent import trading_agent, update_strategy_from_performance, update_macro_strategy
                 
-                # 0. Rafraîchissement Stratégique Macro (Toutes les ~8h si cycle = 60min)
+                # 0. Macro Strategic Refresh (Every ~8h if cycle = 60min)
                 if cycle % 8 == 1:
                     update_macro_strategy()
                     
-                # 1. Rétrospective et mise à jour de la stratégie micro
+                # 1. Retrospective and micro strategy update
                 update_strategy_from_performance()
                 
-                # 2. Appel autonome de la prospection
+                # 2. Autonomous prospecting call
                 result = trading_agent.invoke({"symbol": "", "messages": []})
                 decision = result.get('final_decision', 'UNKNOWN')
                 symbol = result.get('symbol', '?')
@@ -70,43 +70,43 @@ async def periodic_trade_loop():
                     "messages": result.get("messages", [])
                 }
                 
-                logger.info(f"[CYCLE #{cycle}] Terminé → {decision} sur {symbol}")
-                logger.info(f"Prochain cycle dans {CYCLE_INTERVAL_MARKET_OPEN // 60} minutes.")
+                logger.info(f"[CYCLE #{cycle}] Completed → {decision} on {symbol}")
+                logger.info(f"Next cycle in {CYCLE_INTERVAL_MARKET_OPEN // 60} minutes.")
                 await asyncio.sleep(CYCLE_INTERVAL_MARKET_OPEN)
             else:
-                # (#9) Calcul précis du temps avant ouverture
+                # (#9) Precise calculation of time before opening
                 next_open = clock.next_open
                 if next_open and clock.timestamp:
                     wait_seconds = (next_open - clock.timestamp).total_seconds()
                     wait_seconds = min(max(wait_seconds, 60), 3600)  # Entre 1 min et 1h
                     next_str = next_open.strftime("%H:%M UTC")
                     wait_min = int(wait_seconds / 60)
-                    logger.info(f"[CYCLE #{cycle}] Marché FERMÉ. Ouverture à {next_str}. Sommeil intelligent : {wait_min} min.")
+                    logger.info(f"[CYCLE #{cycle}] Market CLOSED. Opening at {next_str}. Intelligent sleep: {wait_min} min.")
                     last_auto_result = {"status": "market_closed", "cycle": cycle, "next_open": next_str, "wait_min": wait_min}
                     await asyncio.sleep(wait_seconds)
                 else:
-                    logger.info(f"[CYCLE #{cycle}] Marché FERMÉ. Horloge unavailable, retry dans 5 min.")
+                    logger.info(f"[CYCLE #{cycle}] Market CLOSED. Clock unavailable, retrying in 5 min.")
                     last_auto_result = {"status": "market_closed", "cycle": cycle, "next_open": "?"}
                     await asyncio.sleep(300)
         except Exception as e:
             err_msg = str(e)
             if "NameResolutionError" in err_msg or "Max retries exceeded" in err_msg:
-                logger.error(f"[CYCLE #{cycle}] Problème réseau / connexion indisponible. Attente...")
-                last_auto_result = {"status": "error", "cycle": cycle, "error": "Réseau indisponible"}
+                logger.error(f"[CYCLE #{cycle}] Network issue / connection unavailable. Waiting...")
+                last_auto_result = {"status": "error", "cycle": cycle, "error": "Network unavailable"}
             else:
-                logger.error(f"[CYCLE #{cycle}] ERREUR boucle autonome: {err_msg}")
+                logger.error(f"[CYCLE #{cycle}] Autonomous loop ERROR: {err_msg}")
                 last_auto_result = {"status": "error", "cycle": cycle, "error": err_msg}
                 
             await asyncio.sleep(60)
             
             # Use a safe check for autopliot mode since clock might be unbound if it failed instantly
             if not autopilot_enabled:
-                logger.info(f"[CYCLE #{cycle}] PANIC MODE ACTIF. Agent en pause.")
+                logger.info(f"[CYCLE #{cycle}] PANIC MODE ACTIVE. Agent paused.")
                 last_auto_result["status"] = "paused"
                 await asyncio.sleep(30)
 
 async def emergency_monitor_loop():
-    """Surveille les positions ouvertes toutes les 15 minutes pour réagir aux flash-crashes."""
+    """Monitors open positions every 15 minutes to react to flash-crashes."""
     while True:
         try:
             if not autopilot_enabled:
@@ -120,25 +120,25 @@ async def emergency_monitor_loop():
                 for pos in positions:
                     plpc = float(pos.unrealized_intraday_plpc) if pos.unrealized_intraday_plpc else 0.0
                     
-                    # Si chute subite de + de 5% dans la journée, on réveille l'agent
+                    # If sudden drop of more than 5% during the day, wake the agent
                     if plpc < -0.05:
-                        logger.warning(f"[PANIC MONITOR] 🚨 Chute anormale ({plpc*100:.1f}%) détectée sur {pos.symbol} ! "
-                                       "Lancement d'une délibération d'urgence du Juge...")
+                        logger.warning(f"[PANIC MONITOR] 🚨 Abnormal drop ({plpc*100:.1f}%) detected on {pos.symbol}! "
+                                       "Launching emergency Judge deliberation...")
                         
                         from agent import trading_agent
                         def run_emergency_agent():
                             trading_agent.invoke({"symbol": pos.symbol})
                         await asyncio.to_thread(run_emergency_agent)
                         
-            await asyncio.sleep(900)  # Check toutes les 15 minutes
+            await asyncio.sleep(900)  # Check every 15 minutes
         except Exception as e:
-            logger.error(f"[PANIC MONITOR] Erreur : {e}")
+            logger.error(f"[PANIC MONITOR] Error: {e}")
             await asyncio.sleep(300)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global main_loop_task, panic_monitor_task
-    # Démarrage des tâches de fond
+    # Start background tasks
     main_loop_task = asyncio.create_task(periodic_trade_loop())
     panic_monitor_task = asyncio.create_task(emergency_monitor_loop())
     yield
@@ -218,7 +218,7 @@ def get_portfolio_analysis():
 # (#10) Endpoint pour le graphique d'équité
 @app.get("/api/portfolio/history")
 def get_portfolio_history():
-    """Retourne l'historique d'équité sur 1 mois pour le graphique."""
+    """Returns 1-month equity history for the chart."""
     try:
         client = get_alpaca_client()
         from alpaca.trading.requests import GetPortfolioHistoryRequest
@@ -241,29 +241,29 @@ def get_portfolio_history():
 
 @app.get("/api/agent/status")
 def get_agent_status():
-    """Retourne le statut actuel de la boucle autonome."""
+    """Returns the current status of the autonomous loop."""
     return last_auto_result
 
 # --- PANIC SWITCH ---
 @app.post("/api/panic")
 def panic_switch():
-    """Arrêt d'urgence : coupe toutes les positions et désactive l'autopilot."""
+    """Emergency stop: closes all positions and disables the autopilot."""
     global autopilot_enabled
     try:
         client = get_alpaca_client()
         client.close_all_positions(cancel_orders=True)
         autopilot_enabled = False
-        logger.warning("🚨 PANIC SWITCH ACTIVÉ. Toutes positions liquidées. Autopilot désactivé.")
-        return {"status": "success", "message": "Toutes les positions ont été liquidées. Autopilot désactivé.", "autopilot_enabled": False}
+        logger.warning("🚨 PANIC SWITCH ACTIVATED. All positions liquidated. Autopilot disabled.")
+        return {"status": "success", "message": "All positions have been liquidated. Autopilot disabled.", "autopilot_enabled": False}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/panic/resume")
 def resume_autopilot():
-    """Réactive l'autopilot après un panic switch."""
+    """Reactivates the autopilot after a panic switch."""
     global autopilot_enabled
     autopilot_enabled = True
-    logger.info("✅ Autopilot réactivé.")
+    logger.info("✅ Autopilot reactivated.")
     return {"status": "success", "autopilot_enabled": True}
 
 # --- STRATEGY MODE ---
@@ -275,31 +275,31 @@ def get_strategy_mode():
 def set_strategy_mode(mode: str = "balanced"):
     global strategy_mode
     if mode not in ["aggressive", "balanced", "conservative"]:
-        return {"status": "error", "message": "Modes valides : aggressive, balanced, conservative"}
+        return {"status": "error", "message": "Valid modes: aggressive, balanced, conservative"}
     strategy_mode = mode
-    logger.info(f"Stratégie changée : {mode}")
+    logger.info(f"Strategy changed: {mode}")
     return {"status": "success", "mode": strategy_mode}
 
 # --- CONFIDENCE SCORE & SENTIMENT ---
 @app.get("/api/confidence")
 def get_confidence_score():
-    """Score de confiance global + sentiment marché basé sur les données réelles."""
+    """Global confidence score + market sentiment based on real data."""
     try:
         client = get_alpaca_client()
         account = client.get_account()
         positions = client.get_all_positions()
         
-        # Calcul du score de confiance
+        # Confidence score calculation
         equity = float(account.equity)
         last_equity = float(account.last_equity)
         daily_change = ((equity - last_equity) / last_equity * 100) if last_equity > 0 else 0
         
-        # Score basé sur : P&L journalier, nombre de positions gagnantes, buying power
+        # Score based on: Daily P&L, number of winning positions, buying power
         winning = sum(1 for p in positions if float(p.unrealized_pl) > 0)
         total = len(positions) if positions else 1
         win_rate = winning / total if total > 0 else 0.5
         
-        # Score composite (0-100)
+        # Composite score (0-100)
         score = min(100, max(0, int(
             50 +  # base
             daily_change * 5 +  # impact du P&L journalier
@@ -309,11 +309,11 @@ def get_confidence_score():
         
         sentiment = "Bullish" if score >= 60 else "Bearish" if score <= 40 else "Neutral"
         
-        # Facteurs de décision
+        # Decision factors
         factors = [
             {"name": "Daily P&L", "weight": round(abs(daily_change * 5) / max(score, 1) * 100, 1), "value": f"{daily_change:+.2f}%", "positive": daily_change >= 0},
             {"name": "Win Rate", "weight": round(win_rate * 30 / max(score, 1) * 100, 1), "value": f"{win_rate*100:.0f}%", "positive": win_rate >= 0.5},
-            {"name": "Liquidité", "weight": round(10 / max(score, 1) * 100, 1), "value": f"${float(account.buying_power):,.0f}", "positive": float(account.buying_power) > equity * 0.3},
+            {"name": "Liquidity", "weight": round(10 / max(score, 1) * 100, 1), "value": f"${float(account.buying_power):,.0f}", "positive": float(account.buying_power) > equity * 0.3},
             {"name": "Positions", "weight": round(10 / max(score, 1) * 100, 1), "value": f"{len(positions)}/25", "positive": len(positions) < 25},
         ]
         
@@ -333,7 +333,7 @@ def get_confidence_score():
 # --- DRAWDOWN ---
 @app.get("/api/portfolio/drawdown")
 def get_drawdown():
-    """Calcule le drawdown max historique vs actuel."""
+    """Calculates historical max drawdown vs current."""
     try:
         client = get_alpaca_client()
         from alpaca.trading.requests import GetPortfolioHistoryRequest
@@ -373,7 +373,7 @@ def get_drawdown():
 # --- HEATMAP ---
 @app.get("/api/portfolio/heatmap")
 def get_portfolio_heatmap():
-    """Génère les données pour la heatmap du portefeuille."""
+    """Generates data for the portfolio heatmap."""
     try:
         client = get_alpaca_client()
         positions = client.get_all_positions()

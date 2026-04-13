@@ -156,7 +156,7 @@ export default function CommandCenter() {
   const changeStrategy = async (mode: string) => {
     await fetch(`${API}/api/strategy/mode?mode=${mode}`, { method: 'POST' });
     setStrategyMode(mode);
-    addLog('System', `Stratégie changée → ${mode.toUpperCase()}`, 'info');
+    addLog('System', `Strategy changed → ${mode.toUpperCase()}`, 'info');
   };
 
   const handlePanic = async () => {
@@ -165,20 +165,20 @@ export default function CommandCenter() {
     try {
       await fetch(`${API}/api/panic`, { method: 'POST' });
       setAutopilotEnabled(false);
-      addLog('PANIC', '🚨 ARRÊT D\'URGENCE — Toutes positions liquidées', 'error');
+      addLog('PANIC', '🚨 EMERGENCY STOP — All positions liquidated', 'error');
       fetchAll();
-    } catch { addLog('System', 'Erreur panic switch', 'error'); }
+    } catch { addLog('System', 'Panic switch error', 'error'); }
   };
 
   const handleResume = async () => {
     await fetch(`${API}/api/panic/resume`, { method: 'POST' });
     setAutopilotEnabled(true);
-    addLog('System', '✅ Autopilot réactivé', 'info');
+    addLog('System', '✅ Autopilot reactivated', 'info');
   };
 
   const triggerAgent = async (symbol: string = "") => {
     setIsAgentRunning(true);
-    addLog('System', symbol ? `Analyse directe de ${symbol}...` : 'Lancement Autopilot Multi-Ticker...', 'info');
+    addLog('System', symbol ? `Direct analysis of ${symbol}...` : 'Launching Multi-Ticker Autopilot...', 'info');
     try {
       const res = await fetch(`${API}/api/agent/trigger?symbol=${symbol}`);
       const data = await res.json();
@@ -186,7 +186,7 @@ export default function CommandCenter() {
         data.messages?.forEach((m: string) => addLog('Agent', m, m.includes('TRADE') ? 'trade' : 'info'));
         setTimeout(fetchAll, 2000);
       } else {
-        addLog('System', `Erreur: ${data.message}`, 'error');
+        addLog('System', `Error: ${data.message}`, 'error');
       }
     } catch { addLog('System', 'Backend inaccessible', 'error'); }
     setIsAgentRunning(false);
@@ -204,16 +204,16 @@ export default function CommandCenter() {
       });
       const data = await res.json();
       setChatMessages(p => [...p, { sender: 'ia', text: data.status === 'success' ? data.reply : data.message }]);
-    } catch { setChatMessages(p => [...p, { sender: 'ia', text: 'Connexion perdue.' }]); }
+    } catch { setChatMessages(p => [...p, { sender: 'ia', text: 'Connection lost.' }]); }
     setIsChatLoading(false);
   };
 
   // ─── Render ─────────────────────────────────────────────────────
   const statusColor = autopilot.status === 'completed' ? 'var(--green)' : autopilot.status === 'market_closed' ? 'var(--yellow)' : autopilot.status === 'paused' ? 'var(--red)' : 'var(--accent)';
   const statusText = autopilot.status === 'completed' ? `Cycle #${autopilot.cycle} → ${autopilot.decision} ${autopilot.symbol}` :
-    autopilot.status === 'market_closed' ? `Fermé ${autopilot.next_open ? `(${autopilot.next_open})` : ''}` :
+    autopilot.status === 'market_closed' ? `Closed ${autopilot.next_open ? `(${autopilot.next_open})` : ''}` :
     autopilot.status === 'paused' ? 'PAUSE (Panic)' :
-    autopilot.status === 'error' ? 'Erreur' : 'En attente';
+    autopilot.status === 'error' ? 'Error' : 'Waiting';
 
   return (
     <div style={{ minHeight: '100vh', padding: '1.5rem 2rem', background: 'var(--bg-primary)', backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(99,102,241,0.04), transparent 30%), radial-gradient(circle at 90% 80%, rgba(34,197,94,0.03), transparent 30%)' }}>
@@ -232,7 +232,7 @@ export default function CommandCenter() {
             {statusText}
           </div>
           {!autopilotEnabled ? (
-            <button className="btn btn-accent btn-sm" onClick={handleResume}>▶ Réactiver</button>
+            <button className="btn btn-accent btn-sm" onClick={handleResume}>▶ Reactivate</button>
           ) : (
             <button className="btn btn-sm" onClick={() => triggerAgent("")} disabled={isAgentRunning}
               style={{ background: isAgentRunning ? 'var(--bg-tertiary)' : 'var(--accent)', borderColor: 'var(--accent)', color: '#fff' }}>
@@ -249,7 +249,7 @@ export default function CommandCenter() {
         <div className="card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <ConfidenceGauge score={confidence.score || 50} sentiment={confidence.sentiment || 'N/A'} />
           <div style={{ flex: 1 }}>
-            <div className="card-title">📊 Score de Confiance</div>
+            <div className="card-title">📊 Confidence Score</div>
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.6rem' }}>
               <div>
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Win Rate</span>
@@ -268,18 +268,18 @@ export default function CommandCenter() {
 
         {/* Strategy Mode */}
         <div className="card">
-          <div className="card-title">⚙️ Mode Stratégique</div>
+          <div className="card-title">⚙️ Strategic Mode</div>
           <div className="strategy-switch" style={{ marginBottom: '1rem' }}>
             {['conservative', 'balanced', 'aggressive'].map(m => (
               <button key={m} className={strategyMode === m ? 'active' : ''} onClick={() => changeStrategy(m)}>
-                {m === 'conservative' ? '🛡️ Prudent' : m === 'balanced' ? '⚖️ Équilibré' : '🔥 Agressif'}
+                {m === 'conservative' ? '🛡️ Conservative' : m === 'balanced' ? '⚖️ Balanced' : '🔥 Aggressive'}
               </button>
             ))}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            {strategyMode === 'conservative' ? 'Allocation max 3%. Stop-Loss serré. Uniquement les setups A+.' :
-             strategyMode === 'aggressive' ? 'Allocation jusqu\'à 10%. Accepte plus de risque pour plus de rendement.' :
-             'Allocation 1-10% modulaire. Équilibre risque/rendement selon la conviction.'}
+            {strategyMode === 'conservative' ? 'Max 3% allocation. Tight Stop-Loss. Only A+ setups.' :
+             strategyMode === 'aggressive' ? 'Up to 10% allocation. Accepts more risk for higher returns.' :
+             'Modular 1-10% allocation. Balance risk/reward according to conviction.'}
           </div>
           <div style={{ marginTop: '0.8rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span className="tag" style={{ background: 'var(--accent-glow)', color: 'var(--accent)' }}>Gemma-4 31B</span>
@@ -290,14 +290,14 @@ export default function CommandCenter() {
 
         {/* Panic Switch + Drawdown */}
         <div className="card">
-          <div className="card-title">🚨 Gestion du Risque</div>
+          <div className="card-title">🚨 Risk Management</div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '0.8rem' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Drawdown Max</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Max Drawdown</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--red)' }}>{drawdown.max_drawdown || 0}%</div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Drawdown Actuel</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Current Drawdown</div>
               <div style={{ fontSize: '1.3rem', fontWeight: 800, color: (drawdown.current_drawdown || 0) < -5 ? 'var(--red)' : 'var(--yellow)' }}>
                 {drawdown.current_drawdown || 0}%
               </div>
@@ -309,9 +309,9 @@ export default function CommandCenter() {
           <button onClick={handlePanic}
             className={panicConfirm ? "btn btn-danger" : "btn"}
             style={{ width: '100%', marginTop: '0.8rem', justifyContent: 'center', animation: panicConfirm ? 'glow 1s infinite' : 'none' }}>
-            {panicConfirm ? '⚠️ CONFIRMER — TOUT LIQUIDER' : '🚨 Panic Switch'}
+            {panicConfirm ? '⚠️ CONFIRM — LIQUIDATE ALL' : '🚨 Panic Switch'}
           </button>
-          {panicConfirm && <div style={{ fontSize: '0.65rem', color: 'var(--red)', textAlign: 'center', marginTop: '0.3rem' }}>Cliquez à nouveau pour confirmer. Toutes les positions seront fermées.</div>}
+          {panicConfirm && <div style={{ fontSize: '0.65rem', color: 'var(--red)', textAlign: 'center', marginTop: '0.3rem' }}>Click again to confirm. All positions will be closed.</div>}
         </div>
       </div>
 
@@ -321,7 +321,7 @@ export default function CommandCenter() {
         {/* Equity Chart */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <div className="card-title" style={{ margin: 0 }}>📈 Courbe d'Équité (1 mois)</div>
+            <div className="card-title" style={{ margin: 0 }}>📈 Equity Curve (1 month)</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
               ${portfolio.equity?.toLocaleString("en-US", { minimumFractionDigits: 2 }) || '0.00'}
               <span style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.5rem', color: (portfolio.change_pct || 0) >= 0 ? 'var(--green)' : 'var(--red)' }}>
@@ -355,14 +355,14 @@ export default function CommandCenter() {
                 <span>{equityHistory[equityHistory.length - 1]?.date}</span>
               </div>
             </div>
-          ) : <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Données en chargement...</div>}
+          ) : <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Loading data...</div>}
         </div>
 
         {/* Portfolio Heatmap */}
         <div className="card">
-          <div className="card-title">🗺️ Heatmap Portefeuille</div>
+          <div className="card-title">🗺️ Portfolio Heatmap</div>
           {heatmap.length === 0 ? (
-            <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Aucune position</div>
+            <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>No positions</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(heatmap.length, 3)}, 1fr)`, gap: '0.5rem' }}>
               {heatmap.map(t => <HeatTile key={t.symbol} tile={t} />)}
@@ -376,7 +376,7 @@ export default function CommandCenter() {
 
         {/* Positions */}
         <div className="card">
-          <div className="card-title">💼 Positions Ouvertes</div>
+          <div className="card-title">💼 Open Positions</div>
           {portfolio.status === 'success' && portfolio.positions?.length > 0 ? (
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {portfolio.positions.map((p: Position) => (
@@ -393,7 +393,7 @@ export default function CommandCenter() {
             </div>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '2rem 0', textAlign: 'center' }}>
-              {portfolio.status === 'loading' ? 'Chargement...' : portfolio.status === 'error' ? 'Connexion perdue' : 'Aucune position'}
+              {portfolio.status === 'loading' ? 'Loading...' : portfolio.status === 'error' ? 'Connection lost' : 'No positions'}
             </div>
           )}
           <div style={{ marginTop: '0.8rem', display: 'flex', gap: '0.5rem' }}>
@@ -404,9 +404,9 @@ export default function CommandCenter() {
 
         {/* Activities */}
         <div className="card">
-          <div className="card-title">📋 Historique des Trades</div>
+          <div className="card-title">📋 Trade History</div>
           {activities.length === 0 ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '2rem 0', textAlign: 'center' }}>Aucun trade récent</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '2rem 0', textAlign: 'center' }}>No recent trades</div>
           ) : (
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {activities.map((a, i) => (
@@ -454,24 +454,24 @@ export default function CommandCenter() {
                   </div>
                 </div>
               ))}
-              {isChatLoading && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Gemma-4 réfléchit...</div>}
+              {isChatLoading && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Gemma-4 is thinking...</div>}
               <div ref={chatEndRef} />
             </div>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendChat()}
-                placeholder="Demande à l'IA..." style={{ flex: 1 }} />
-              <button className="btn btn-accent btn-sm" onClick={sendChat} disabled={isChatLoading}>Envoyer</button>
+                placeholder="Ask the IA..." style={{ flex: 1 }} />
+              <button className="btn btn-accent btn-sm" onClick={sendChat} disabled={isChatLoading}>Send</button>
             </div>
           </div>
         </div>
 
         {/* 📰 Market Intelligence (FinBERT) */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', maxHeight: '420px' }}>
-          <div className="card-title">📰 Intelligence Marché (FinBERT)</div>
+          <div className="card-title">📰 Market Intelligence (FinBERT)</div>
           {newsSentiment.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
-              En attente d'extraction web...
+              Waiting for web extraction...
             </div>
           ) : (
             <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
