@@ -68,4 +68,6 @@ chmod +x setup.sh
 This software is intended for educational purposes and Paper Trading (Simulation) only. Never use it with real money without being fully aware of the risks associated with derivatives and stock trading.
 
 ---
-*Developed with ❤️ for smarter trading.*
+*This was created entirely by AI but I really want feedbacks to improve my coding skills.*
+*I would like to sincerely thank the contributors to this project and those who take the time to check out this repository*
+
